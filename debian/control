@@ -1,0 +1,8 @@
+Package: hsn2-thug
+Version: {VER}
+Section: unknown
+Priority: optional
+Architecture: all
+Depends: python-hsn2-lib
+Maintainer: Wojciech Michalak (wojciech.michalak@nask.pl)
+Description: HSN2 Thug Service. It utilises the Thug Python low-interaction honeyclient.
