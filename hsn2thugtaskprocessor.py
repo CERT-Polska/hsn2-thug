@@ -1,4 +1,4 @@
-#!/usr/bin/python -tt
+
 
 # Copyright (c) NASK
 # 
@@ -121,13 +121,14 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 		output = self.runExternal(args)
 		self.objects[0].addTime("thug_time_stop",int(time.time() * 1000))
 		if output[0] is not None:
-			dirline = output[0].strip().split("\n")[-1]
+			dirline = output[0].strip().split("\n")[-3]
 			logDir = os.path.abspath(os.path.join(self.thugDir,dirline.split()[-1]))
 			xmlFile = "%s/analysis.xml" % logDir
 			ret = self.parseXML(xmlFile, save_js_context)
 			if ret is False:
 				self.objects[0].addBool("thug_active",False)
-				self.objects[0].addString("thug_error_message",str(output[1]))
+				self.objects[0].addString("thug_error_message",str(output[1]))			
+				
 			else:
 				self.objects[0].addBool("thug_active",True)
 				self.objects[0].addBytes("thug_analysis_file",self.dsAdapter.putFile(xmlFile,self.currentTask.job))
