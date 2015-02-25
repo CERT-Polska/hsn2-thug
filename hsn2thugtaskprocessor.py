@@ -39,7 +39,7 @@ import time
 import tempfile
 import re
 
-ANALYSIS_DIR_REGEXP = re.compile(r"Saving log analysis at ([\.a-z0-9/]+)\\")
+ANALYSIS_DIR_REGEXP = re.compile(r"Saving log analysis at\s([\.a-z0-9/]+)")
 
 class ThugTaskProcessor(HSN2TaskProcessor):
 	'''
