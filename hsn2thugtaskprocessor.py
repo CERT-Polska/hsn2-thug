@@ -37,6 +37,9 @@ import os
 import shutil
 import time
 import tempfile
+import re
+
+ANALYSIS_DIR_REGEXP = re.compile(r"Saving log analysis at ([\.a-z0-9/]+)\\")
 
 class ThugTaskProcessor(HSN2TaskProcessor):
 	'''
@@ -121,8 +124,15 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 		output = self.runExternal(args)
 		self.objects[0].addTime("thug_time_stop",int(time.time() * 1000))
 		if output[0] is not None:
-			dirline = output[0].strip().split("\n")[-3]
-			logDir = os.path.abspath(os.path.join(self.thugDir,dirline.split()[-1]))
+			match = ANALYSIS_DIR_REGEXP.search(output[0])
+			if match:
+				relativeLogDir = match.group(1)
+			else:
+				self.objects[0].addBool("thug_active", False)
+				self.objects[0].addString("thug_error_message", "Couldn't find log dir in output: " + repr(output[0]))
+				return []
+			
+			logDir = os.path.abspath(os.path.join(self.thugDir,relativeLogDir))
 			xmlFile = "%s/analysis.xml" % logDir
 			ret = self.parseXML(xmlFile, save_js_context)
 			if ret is False:
