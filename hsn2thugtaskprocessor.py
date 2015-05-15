@@ -39,7 +39,7 @@ import time
 import tempfile
 import re
 
-ANALYSIS_DIR_REGEXP = re.compile(r"Saving log analysis at\s([\.a-z0-9/]+)")
+ANALYSIS_DIR_REGEXP = re.compile(r"Thug analysis logs saved at\s([\.a-z0-9/]+)")
 
 class ThugTaskProcessor(HSN2TaskProcessor):
 	'''
@@ -117,7 +117,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 		except BaseException as e:
 			raise ParamException("%s" % str(e))
 
-		args = ["python", self.thug, useragent, proxy, verbose, debug, referer, url]
+		args = ["python", self.thug, "-F", "-M", useragent, proxy, verbose, debug, referer, url]
 		args = [x for x in args if len(x) > 0]
 
 		self.objects[0].addTime("thug_time_start",int(time.time() * 1000))
@@ -133,7 +133,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 				return []
 			
 			logDir = os.path.abspath(os.path.join(self.thugDir,relativeLogDir))
-			xmlFile = "%s/analysis.xml" % logDir
+			xmlFile = "%s/analysis/maec11/analysis.xml" % logDir
 			ret = self.parseXML(xmlFile, save_js_context)
 			if ret is False:
 				self.objects[0].addBool("thug_active",False)
