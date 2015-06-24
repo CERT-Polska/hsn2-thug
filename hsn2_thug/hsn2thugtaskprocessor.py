@@ -17,14 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''
-Created on 30-05-2012
-
-@author: wojciechm
-'''
-
 import sys
-from hsn2objectwrapper import BadValueException
 sys.path.append("/opt/hsn2/python/commlib")
 from hsn2taskprocessor import HSN2TaskProcessor
 from hsn2taskprocessor import ParamException, ProcessingException
@@ -178,7 +171,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 			return False
 
 	def storeZip(self, dirPath):
-		zip = shutil.make_archive(dirPath, "zip", dirPath, dirPath, verbose=False)
-		self.objects[0].addBytes("thug_analysis_zip",self.dsAdapter.putFile(zip,self.currentTask.job))
-		logging.debug("'%s' zip stored" % zip)
-		os.remove(zip)
+		zip_ = shutil.make_archive(dirPath, "zip_", dirPath, dirPath, verbose=False)
+		self.objects[0].addBytes("thug_analysis_zip",self.dsAdapter.putFile(zip_,self.currentTask.job))
+		logging.debug("'%s' zip_ stored" % zip_)
+		os.remove(zip_)

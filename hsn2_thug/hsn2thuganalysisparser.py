@@ -17,14 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''
-Created on 31-05-2012
-
-@author: wojciechm
-'''
-#import xml.parsers.expat
 import xml.sax
-import logging
 
 class ThugAnalysisParser(xml.sax.handler.ContentHandler):
 	parser = None
@@ -41,7 +34,6 @@ class ThugAnalysisParser(xml.sax.handler.ContentHandler):
 	def __init__(self):
 		self.parser = xml.sax.make_parser()
 		self.parser.setContentHandler(self)
-		#self.parser = xml.parsers.expat.ParserCreate()
 
 	def parseFile(self, filePath, saveJSContexts = True):
 		self.behaviours = []
@@ -51,12 +43,10 @@ class ThugAnalysisParser(xml.sax.handler.ContentHandler):
 		self.inCodeSegment = False
 		self.inBehaviour = False
 		self.inBehaviourText = False
-		#fileH = open(filePath,"r")
 		try:
 			self.parser.parse(filePath)
 		except xml.sax.SAXException:
 			return False
-		#fileH.close()
 		return (self.behaviours, self.jsContexts)
 
 	# 3 handler functions
