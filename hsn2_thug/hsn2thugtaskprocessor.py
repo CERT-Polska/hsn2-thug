@@ -17,20 +17,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys
-sys.path.append("/opt/hsn2/python/commlib")
-from hsn2taskprocessor import HSN2TaskProcessor
-from hsn2taskprocessor import ParamException, ProcessingException
-from hsn2osadapter import ObjectStoreException
-import hsn2objectwrapper as ow
 import logging
-import subprocess
-from hsn2thuganalysisparser import ThugAnalysisParser
 import os
-import shutil
-import time
-import tempfile
 import re
+import shutil
+import subprocess
+import tempfile
+import time
+
+from hsn2_commons import hsn2objectwrapper as ow
+from hsn2_commons.hsn2osadapter import ObjectStoreException
+from hsn2_commons.hsn2taskprocessor import HSN2TaskProcessor
+from hsn2_commons.hsn2taskprocessor import ParamException, ProcessingException
+from hsn2_thug.hsn2thuganalysisparser import ThugAnalysisParser
+
 
 ANALYSIS_DIR_REGEXP = re.compile(r"Thug analysis logs saved at\s([\.a-z0-9/]+)")
 
