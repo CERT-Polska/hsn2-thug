@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+	CONTEXT="/etc/hsn2/thug-docker"
+else
+	CONTEXT="$1"
+fi
+
+cd $CONTEXT
+apt-get download python-hsn2-thug python-hsn2-commons python-hsn2-proto
+docker build --no-cache --force-rm -t hsn2/thug .
+rm *.deb

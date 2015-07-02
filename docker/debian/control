@@ -1,0 +1,13 @@
+Source: hsn2-thug-docker
+Section: misc
+Priority: optional
+Maintainer: CERT Polska <info@cert.pl>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.3
+
+Package: hsn2-thug-docker
+Architecture: all
+Depends: ${misc:Depends}, docker.io | lxc-docker
+Description: HSN2 Thug Docker Helper Service.
+	Prepares the required hsn2/thug image using hsn2 packages and honeynet/thug.
+	Manages starting, stopping, cleanup of the hsn2/thug containers.
