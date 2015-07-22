@@ -8,6 +8,6 @@ X-Python-Version: >= 2.6
 
 Package: python-hsn2-thug
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-hsn2-commons, hsn2-commons-debian, mongodb, python-pymongo (>= 3.0.3-1c)
+Depends: ${misc:Depends}, ${python:Depends}, python-hsn2-commons, hsn2-commons-debian, mongodb, python-pymongo (>= 3.0.3-1c), python-gridfs (>= 3.0.3-1c), python-pymongo-ext (>= 3.0.3-1c), python-bson-ext (>= 3.0.3-1c)
 Provides: ${python:Provides}
 Description: HSN2 Thug Service. It utilises the Thug Python low-interaction honeyclient.

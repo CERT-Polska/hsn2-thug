@@ -7,6 +7,6 @@ else
 fi
 
 cd $CONTEXT
-apt-get download python-hsn2-thug python-hsn2-commons python-hsn2-proto python-pymongo=3.0.3-1c python-bson=3.0.3-1c
+apt-get download python-hsn2-thug python-hsn2-commons python-hsn2-proto python-pymongo=3.0.3-1c python-bson=3.0.3-1c python-bson-ext=3.0.3-1c python-pymongo-ext=3.0.3-1c python-gridfs=3.0.3-1c
 docker build --no-cache --force-rm -t hsn2/thug .
 rm *.deb
