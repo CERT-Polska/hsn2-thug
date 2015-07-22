@@ -83,16 +83,18 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         debug = ""
         save_zip = False
         save_js_context = True
+        delay = 3000
+        timeout = 60 * 10
 
         try:
             for param in self.currentTask.parameters:
                 if param.name == "useragent":
                     value = str(param.value)
-                    if len(value) > 0:
+                    if value:
                         useragent = "--useragent=%s" % value
                 elif param.name == "proxy":
                     value = str(param.value)
-                    if len(value) > 0:
+                    if value:
                         proxy = "--proxy=%s" % value
                 elif param.name == "verbose":
                     verbose = self.paramToBool(param)
@@ -110,10 +112,22 @@ class ThugTaskProcessor(HSN2TaskProcessor):
                     save_zip = self.paramToBool(param)
                 elif param.name == "save_js_context":
                     save_js_context = self.paramToBool(param)
-        except BaseException as e:
+                elif param.name == "delay":
+                    delay = int(param.value)
+                    if delay < 0:
+                        raise ParamException("%s" % "delay cannot be smaller than 0")
+                elif param.name == "timeout":
+                    timeout = int(param.value)
+                    if timeout < 0:
+                        raise ParamException("%s" % "timeout cannot be smaller than 0")
+        except ParamException:
+            raise
+        except Exception as e:
             raise ParamException("%s" % str(e))
 
-        args = ["python", self.thug, "-F", "-M", useragent, proxy, verbose, debug, referer, url]
+        delay = "--delay={}".format(delay)
+        timeout = "--timeout={}".format(timeout)
+        args = ["python", self.thug, "-F", "-M", timeout, delay, useragent, proxy, verbose, debug, referer, url]
         args = [x for x in args if len(x) > 0]
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
