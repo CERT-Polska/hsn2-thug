@@ -5,4 +5,4 @@
 SCRIPT=$1
 shift
 
-python $SCRIPT $@
+exec python $SCRIPT $@
