@@ -22,6 +22,7 @@ import xml.sax
 
 class ThugAnalysisParser(xml.sax.handler.ContentHandler):
     parser = None
+    found_exploits = None
     behaviour = None
     behaviours = None
     inBehaviour = None
@@ -44,11 +45,12 @@ class ThugAnalysisParser(xml.sax.handler.ContentHandler):
         self.inCodeSegment = False
         self.inBehaviour = False
         self.inBehaviourText = False
+        self.found_exploits = False
         try:
             self.parser.parse(filePath)
         except xml.sax.SAXException:
-            return False
-        return (self.behaviours, self.jsContexts)
+            return (False, False, False, False)
+        return (True, self.found_exploits, self.behaviours, self.jsContexts)
 
     # 3 handler functions
     def startElement(self, name, attrs):
@@ -60,6 +62,8 @@ class ThugAnalysisParser(xml.sax.handler.ContentHandler):
         if name == "Behavior":
             self.behaviour = {}
             self.inBehaviour = True
+        if self.inBehaviour and name == "Attempted_Vulnerability_Exploit":
+            self.found_exploits = True
         if self.inBehaviour and name == "Text":
             self.inBehaviourText = True
         if self.inBehaviour and name == "Discovery_Method":

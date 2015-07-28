@@ -28,7 +28,7 @@ import time
 from hsn2_commons import hsn2objectwrapper as ow
 from hsn2_commons.hsn2osadapter import ObjectStoreException
 from hsn2_commons.hsn2taskprocessor import HSN2TaskProcessor
-from hsn2_commons.hsn2taskprocessor import ParamException, ProcessingException
+from hsn2_commons.hsn2taskprocessor import ParamException
 from hsn2_thug.hsn2thuganalysisparser import ThugAnalysisParser
 
 
@@ -54,15 +54,12 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         '''
         HSN2TaskProcessor.__init__(self, connector, datastore, serviceName, serviceQueue, objectStoreQueue, **extra)
         self.thug = extra.get("thug")
-        self.thugDir = os.path.split(self.thug)[0]
+        self.thugDir = os.path.dirname(self.thug)
         self.parser = ThugAnalysisParser()
 
     def taskProcess(self):
         '''	This method should be overridden with what is to be performed.
                 Returns a list of warnings (warnings). The current task is available at self.currentTask'''
-        logging.debug(self.__class__)
-        logging.debug(self.currentTask)
-        logging.debug(self.objects)
         if len(self.objects) == 0:
             raise ObjectStoreException("Task processing didn't find task object.")
 
@@ -131,64 +128,91 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         args = [x for x in args if len(x) > 0]
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
-        output = self.runExternal(args)
-        self.objects[0].addTime("thug_time_stop", int(time.time() * 1000))
-        if output[0] is not None:
-            match = ANALYSIS_DIR_REGEXP.search(output[0])
-            if match:
-                relativeLogDir = match.group(1)
-            else:
-                self.objects[0].addBool("thug_active", False)
-                self.objects[0].addString("thug_error_message", "Couldn't find log dir in output: " + repr(output[0]))
-                return []
-
-            logDir = os.path.abspath(os.path.join(self.thugDir, relativeLogDir))
-            xmlFile = "%s/analysis/maec11/analysis.xml" % logDir
-            ret = self.parseXML(xmlFile, save_js_context)
-            if ret is False:
-                self.objects[0].addBool("thug_active", False)
-                self.objects[0].addString("thug_error_message", str(output[1]))
-
-            else:
-                self.objects[0].addBool("thug_active", True)
-                self.objects[0].addBytes("thug_analysis_file", self.dsAdapter.putFile(xmlFile, self.currentTask.job))
-                if save_zip:
-                    self.storeZip(logDir)
-
-                bList = ow.toBehaviorList(ret[0])
-                tmp = tempfile.mkstemp()
-                os.write(tmp[0], bList.SerializeToString())
-                os.close(tmp[0])
-                self.objects[0].addBytes("thug_behaviors", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
-
-                os.remove(tmp[1])
-#				logging.debug(ret[1])
-                cList = ow.toJSContextList(ret[1])
-                tmp = tempfile.mkstemp()
-                os.write(tmp[0], cList.SerializeToString())
-                os.close(tmp[0])
-                self.objects[0].addBytes("js_context_list", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
-                os.remove(tmp[1])
+        output, return_code = self.runExternal(args)
+        
+        if return_code != 0:
+            message = "Thug returncode was {}".format(return_code)
+            logging.warning(message)
+            #logging.warning(output[0])
+            self.objects[0].addString("thug_error", message)
+            
+            tmp = tempfile.mkstemp()
+            os.write(tmp[0], output[0])
+            os.close(tmp[0])
+            self.objects[0].addBytes("thug_error_details", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
+            self.remove_tmp(tmp[1])
+            
+        else:
+            self.objects[0].addTime("thug_time_stop", int(time.time() * 1000))
+            if output[0] is not None:
+                match = ANALYSIS_DIR_REGEXP.search(output[0])
+                if match:
+                    relativeLogDir = match.group(1)
+                    logDir = os.path.abspath(os.path.join(self.thugDir, relativeLogDir))
+                    xmlFile = "%s/analysis/maec11/analysis.xml" % logDir
+                    ret = self.parseXML(xmlFile, save_js_context)
+                    if ret is False:
+                        self.objects[0].addString("thug_error", str(output[1]))
+                    else:
+                        logging.debug("Analysis parsed %s", xmlFile)
+        
+                    if save_zip and os.path.isdir(logDir):
+                        self.storeZip(logDir)
+                    self.remove_tmp(logDir)
+                    parent_dir = os.path.dirname(logDir)
+                    try:
+                        os.rmdir(parent_dir)
+                        logging.info("Removed log directory parent %s", parent_dir)
+                    except:
+                        logging.info("Couldn't remove log directory parent - non empty %s", parent_dir)
+                else:
+                    self.objects[0].addBool("thug_active", False)
+                    self.objects[0].addString("thug_error", "Couldn't find log dir in output: " + repr(output[0]))
         return []
 
     def runExternal(self, args):
         logging.debug(args)
-        # Such a cwd will cause the logs to be written at '/opt/hsn2/thug/logs'
+        # Such a cwd will cause the logs to be written at '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self.thugDir)
         output = proc.communicate()
-        if proc.returncode != 0:
-            raise ProcessingException("Thug returncode was %d" % proc.returncode)
-        return output
+        return output, proc.returncode
 
     def parseXML(self, xmlFile, saveJsContext):
-        if os.path.isfile(xmlFile):
-            ret = self.parser.parseFile(xmlFile, saveJsContext)
-            return ret
-        else:
+        (parsed, found_exploits, found_behaviours, found_js_contexts) = self.parser.parseFile(xmlFile, saveJsContext) if os.path.isfile(xmlFile) else False
+        self.objects[0].addBool("thug_active", parsed)
+        self.objects[0].addBool("thug_detected", found_exploits)
+        
+        if not parsed:
             return False
+        
+        self.objects[0].addBytes("thug_analysis_file", self.dsAdapter.putFile(xmlFile, self.currentTask.job))
+
+        bList = ow.toBehaviorList(found_behaviours)
+        tmp = tempfile.mkstemp()
+        os.write(tmp[0], bList.SerializeToString())
+        os.close(tmp[0])
+        self.objects[0].addBytes("thug_behaviors", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
+        self.remove_tmp(tmp[1])
+        
+        cList = ow.toJSContextList(found_js_contexts)
+        tmp = tempfile.mkstemp()
+        os.write(tmp[0], cList.SerializeToString())
+        os.close(tmp[0])
+        self.objects[0].addBytes("js_context_list", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
+        self.remove_tmp(tmp[1])
+        return True
 
     def storeZip(self, dirPath):
         zip_ = shutil.make_archive(dirPath, "zip_", dirPath, dirPath, verbose=False)
         self.objects[0].addBytes("thug_analysis_zip", self.dsAdapter.putFile(zip_, self.currentTask.job))
         logging.debug("'%s' zip_ stored" % zip_)
         os.remove(zip_)
+        
+    def remove_tmp(self, path):
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.unlink(path)
+        except Exception as exc:
+            logging.warning(u"Exception when trying to remove temporary files: %s %s", path, exc)
