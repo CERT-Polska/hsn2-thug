@@ -125,7 +125,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         delay = "--delay={}".format(delay)
         timeout = "--timeout={}".format(timeout)
         args = ["python", self.thug, "-F", "-M", timeout, delay, useragent, proxy, verbose, debug, referer, url]
-        args = [x for x in args if len(x) > 0]
+        args = [unicode(x).encode("utf-8") for x in args if len(x) > 0]
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
         output, return_code = self.runExternal(args)
