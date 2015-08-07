@@ -28,6 +28,7 @@ import time
 from hsn2_commons import hsn2objectwrapper as ow
 from hsn2_commons.hsn2osadapter import ObjectStoreException
 from hsn2_commons.hsn2taskprocessor import HSN2TaskProcessor
+from hsn2_commons.hsn2bus import ShutdownException
 from hsn2_commons.hsn2taskprocessor import ParamException
 from hsn2_thug.hsn2thuganalysisparser import ThugAnalysisParser
 
@@ -128,18 +129,21 @@ class ThugTaskProcessor(HSN2TaskProcessor):
             raise ParamException("%s" % str(e))
 
         delay = "--delay={}".format(delay)
-        timeout = "--timeout={}".format(timeout)
+        timeout_str = "--timeout={}".format(timeout)
         threshold = "--threshold={}".format(threshold) if threshold > 0 else ""
-        args = ["python", self.thug, "-F", "-M", timeout, delay, threshold, useragent, proxy, verbose, debug, referer, url]
+        args = ["python", self.thug, "-F", "-M", timeout_str, delay, threshold, useragent, proxy, verbose, debug, referer, url]
         args = [unicode(x).encode("utf-8") for x in args if len(x) > 0]
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
-        output, return_code = self.runExternal(args)
+        output, timedout, return_code = self.runExternal(args, timeout * 1.5)
         
         if return_code != 0:
-            message = "Thug returncode was {}".format(return_code)
-            logging.warning(message)
+            if timedout:
+                message = "Thug analysis timeout"
+            else:
+                message = "Thug returncode was {}".format(return_code)
             #logging.warning(output[0])
+            logging.warning(message)
             self.objects[0].addString("thug_error", message)
             
             tmp = tempfile.mkstemp()
@@ -147,7 +151,6 @@ class ThugTaskProcessor(HSN2TaskProcessor):
             os.close(tmp[0])
             self.objects[0].addBytes("thug_error_details", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
             self.remove_tmp(tmp[1])
-            
         else:
             self.objects[0].addTime("thug_time_stop", int(time.time() * 1000))
             if output[0] is not None:
@@ -176,12 +179,23 @@ class ThugTaskProcessor(HSN2TaskProcessor):
                     self.objects[0].addString("thug_error", "Couldn't find log dir in output: " + repr(output[0]))
         return []
 
-    def runExternal(self, args):
+    def runExternal(self, args, timeout):
         logging.debug(args)
         # Such a cwd will cause the logs to be written at '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
         proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self.thugDir)
+        start = time.time()
+        timedout = False
+        while proc.poll() is None:
+            timedout = time.time() - start >= timeout
+            if timedout:
+                proc.terminate()
+                break
+            if not self.keepRunning:
+                proc.terminate()
+                raise ShutdownException("Shutdown while waiting for thug to finish processing")
+            time.sleep(0.1)
         output = proc.communicate()
-        return output, proc.returncode
+        return output, timedout, proc.returncode
 
     def parseXML(self, xmlFile, saveJsContext):
         (parsed, found_exploits, found_behaviours, found_js_contexts) = self.parser.parseFile(xmlFile, saveJsContext) if os.path.isfile(xmlFile) else False
