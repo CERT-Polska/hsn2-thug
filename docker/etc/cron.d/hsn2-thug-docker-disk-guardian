@@ -1,0 +1,1 @@
+*/15 * * * * root /usr/bin/hsn2-thug-docker-restarter 0.8

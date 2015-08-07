@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import sys
+
+def disk_usage_percentage(path):
+    st = os.statvfs(path)
+    used = (st.f_blocks - st.f_bfree) * st.f_frsize
+    total = st.f_blocks * st.f_frsize
+    return float(used) / total
+
+if __name__ == "__main__":
+    used =  disk_usage_percentage("/var/lib/docker/aufs")
+    threshold = float(sys.argv[1]) if len(sys.argv) > 1 else 0.7
+    if used > threshold:
+        print "Restart of hsn2-thug-docker required (usage: {:.4f})".format(used)
+        try:
+            subprocess.check_call(["/etc/init.d/hsn2-thug-docker", "stop"])
+        except:
+            print "Stop failed. Possibly the container wasn't running?"
+        subprocess.check_call(["/etc/init.d/hsn2-thug-docker", "start"])
+    else:
+        print "Restart of hsn2-thug-docker not required (usage: {:.4f})".format(used)

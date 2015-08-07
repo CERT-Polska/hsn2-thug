@@ -50,7 +50,7 @@ case "$1" in
 
 	stop)
 		log_daemon_msg "Stopping" "$NAME"
-		docker exec thug pkill -9 python
+		docker exec thug pkill -15 -f hsn2thugservice
 		docker stop thug
 		docker rm thug
 		log_end_msg 0
