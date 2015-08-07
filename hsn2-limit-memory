@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LIMIT=1572864
+LIMIT=2097152
 
 ulimit -m $LIMIT
 ulimit -v $LIMIT
