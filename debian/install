@@ -1,1 +1,2 @@
 install_thug.sh /opt/hsn2/
+hsn2-limit-memory /usr/bin/

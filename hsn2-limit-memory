@@ -1,0 +1,8 @@
+#!/bin/sh
+
+LIMIT=1572864
+
+ulimit -m $LIMIT
+ulimit -v $LIMIT
+
+exec $@

@@ -131,7 +131,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         delay = "--delay={}".format(delay)
         timeout_str = "--timeout={}".format(timeout)
         threshold = "--threshold={}".format(threshold) if threshold > 0 else ""
-        args = ["python", self.thug, "-F", "-M", timeout_str, delay, threshold, useragent, proxy, verbose, debug, referer, url]
+        args = ["/usr/bin/hsn2-limit-memory", "python", self.thug, "-F", "-M", timeout_str, delay, threshold, useragent, proxy, verbose, debug, referer, url]
         args = [unicode(x).encode("utf-8") for x in args if len(x) > 0]
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
