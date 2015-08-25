@@ -5,4 +5,4 @@ FROM honeynet/thug
 COPY *.deb /tmp/
 COPY start.sh /
 
-RUN apt-get update && apt-get install -f -y --no-install-recommends python-pika python-protobuf mongodb && dpkg -i /tmp/*.deb 
+RUN apt-get update && apt-get install -f -y --no-install-recommends python-pika python-protobuf python-magic mongodb && dpkg -i /tmp/*.deb 
