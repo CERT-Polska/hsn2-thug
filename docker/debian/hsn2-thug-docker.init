@@ -43,8 +43,8 @@ case "$1" in
 			hsn2-thug-docker-build
 		fi
 		
-		docker ps -a | grep Exited | grep hsn2/thug | cut -d" " -f 1 | xargs --no-run-if-empty docker rm
-		docker run -d -v /var/log/hsn2:/var/log/hsn2/ --dns=8.8.8.8 -h dockerThug --name thug -w $HSN2_COMPONENT_HOME hsn2/thug /start.sh ${HSN2_COMPONENT_HOME}/hsn2thugservice.py $HSN2_COMPONENT_PARAMS
+		docker ps -a | grep Exited | grep hsn2/thug | cut -d" " -f 1 | xargs --no-run-if-empty docker rm > /dev/null
+		docker run -d -v /var/log/hsn2:/var/log/hsn2/ --dns=8.8.8.8 -h dockerThug --name thug -w $HSN2_COMPONENT_HOME hsn2/thug /start.sh ${HSN2_COMPONENT_HOME}/hsn2thugservice.py $HSN2_COMPONENT_PARAMS > /dev/null
 		PID=`docker inspect --format '{{.State.Pid}}' thug`
 		TEST=`ps ax | grep $PID | sed -e 's/^ *//' | cut -d' ' -f1`
 		if [ -n "$TEST" ]; then
@@ -58,9 +58,16 @@ case "$1" in
 
 	stop)
 		log_daemon_msg "Stopping" "$NAME"
-		docker exec thug pkill -15 -f hsn2thugservice
-		docker stop thug
-		docker rm thug
+		if [ `docker ps | grep thug -c` -eq 1 ]; then
+			docker exec thug pkill -15 -f hsn2thugservice > /dev/null
+		fi
+		# check again to force stop
+		if [ `docker ps | grep thug -c` -eq 1 ]; then
+			docker stop thug > /dev/null
+		fi
+		if [ `docker ps -a | grep thug -c` -gt 0 ]; then
+			docker rm thug > /dev/null
+		fi
 		log_end_msg 0
 		echo "" > $PIDFILE
 		;;
