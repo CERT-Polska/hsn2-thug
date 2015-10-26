@@ -7,7 +7,7 @@ Standards-Version: 3.9.3
 
 Package: hsn2-thug-docker
 Architecture: all
-Depends: ${misc:Depends}, docker.io | lxc-docker, python2.7
+Depends: ${misc:Depends}, docker.io | docker-engine, python2.7
 Description: HSN2 Thug Docker Helper Service.
 	Prepares the required hsn2/thug image using hsn2 packages and honeynet/thug.
 	Manages starting, stopping, cleanup of the hsn2/thug containers.
