@@ -18,10 +18,18 @@ PIDFILE="/var/run/hsn2-thug-docker.pid"
 
 HSN2_COMPONENT_HOME="/usr/lib/python2.7/dist-packages/hsn2_thug"
 
-HSN2_COMPONENT_PARAMS="--connector=127.0.0.1 \
---datastore=localhost:8080 \
---maxThreads=1 \
---log-level=INFO \
+CONFFILE=/etc/hsn2/common.conf
+if [ -f $CONFFILE ]; then
+	. $CONFFILE
+else
+	echo "Missing configuration file: $CONFFILE"
+	exit 1
+fi
+
+HSN2_COMPONENT_PARAMS="--connector=$BROKER_ADDRESS \
+--datastore=http://$DATASTORE_ADDRESS \
+--maxThreads=$MAX_THREADS \
+--log-level=$LOG_LEVEL \
 --service-name=$HSN2_COMPONENT \
 --thug=/opt/thug/src/thug.py"
 
