@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import fcntl
 import logging
 import os
 import re
@@ -26,14 +27,24 @@ import tempfile
 import time
 
 from hsn2_commons import hsn2objectwrapper as ow
+from hsn2_commons.hsn2bus import ShutdownException
 from hsn2_commons.hsn2osadapter import ObjectStoreException
 from hsn2_commons.hsn2taskprocessor import HSN2TaskProcessor
-from hsn2_commons.hsn2bus import ShutdownException
 from hsn2_commons.hsn2taskprocessor import ParamException
 from hsn2_thug.hsn2thuganalysisparser import ThugAnalysisParser
 
 
 ANALYSIS_DIR_REGEXP = re.compile(r"Thug analysis logs saved at\s([\.a-z0-9/]+)")
+
+
+def nonBlockRead(output):
+    fd = output.fileno()
+    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+    try:
+        return output.read()
+    except:
+        return ''
 
 
 class ThugTaskProcessor(HSN2TaskProcessor):
@@ -179,23 +190,49 @@ class ThugTaskProcessor(HSN2TaskProcessor):
                     self.objects[0].addString("thug_error", "Couldn't find log dir in output: " + repr(output[0]))
         return []
 
-    def runExternal(self, args, timeout):
-        logging.debug(args)
-        # Such a cwd will cause the logs to be written at '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self.thugDir)
+    def runExternal(self, args, timeout=60):
+        """
+        Execute args, limit execution time to 'timeout' seconds.
+        Uses the subprocess module and subprocess.PIPE.
+        """
+
+        bufsize = 0
+
+        proc = subprocess.Popen(
+            args,
+            bufsize=bufsize,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=self.thugDir  # this will cause the logs to be written to '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
+        )
+
         start = time.time()
+
+        stdout = ''
+        stderr = ''
+
         timedout = False
         while proc.poll() is None:
             timedout = time.time() - start >= timeout
             if timedout:
-                proc.terminate()
+                self.terminateProc(proc)
                 break
             if not self.keepRunning:
-                proc.terminate()
+                self.terminateProc(proc)
                 raise ShutdownException("Shutdown while waiting for thug to finish processing")
             time.sleep(0.1)
-        output = proc.communicate()
-        return output, timedout, proc.returncode
+            stdout += nonBlockRead(proc.stdout)
+            stderr += nonBlockRead(proc.stderr)
+
+        return (stdout, stderr), timedout, proc.returncode
+
+    def terminateProc(self, proc):
+        try:
+            proc.stdout.close()
+            proc.stderr.close()
+            proc.terminate()
+        except Exception as exc:
+            logging.exception(exc)
 
     def parseXML(self, xmlFile, saveJsContext):
         (parsed, found_exploits, found_behaviours, found_js_contexts) = self.parser.parseFile(xmlFile, saveJsContext) if os.path.isfile(xmlFile) else False
