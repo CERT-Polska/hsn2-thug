@@ -136,16 +136,16 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 
         self.objects[0].addTime("thug_time_start", int(time.time() * 1000))
         output, timedout, return_code = self.runExternal(args, timeout * 1.5)
-        
+
         if return_code != 0:
             if timedout:
                 message = "Thug analysis timeout"
             else:
                 message = "Thug returncode was {}".format(return_code)
-            #logging.warning(output[0])
+            # logging.warning(output[0])
             logging.warning(message)
             self.objects[0].addString("thug_error", message)
-            
+
             tmp = tempfile.mkstemp()
             os.write(tmp[0], output[0])
             os.close(tmp[0])
@@ -164,7 +164,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
                         self.objects[0].addString("thug_error", str(output[1]))
                     else:
                         logging.debug("Analysis parsed %s", xmlFile)
-        
+
                     if save_zip and os.path.isdir(logDir):
                         self.storeZip(logDir)
                     self.remove_tmp(logDir)
@@ -201,10 +201,10 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         (parsed, found_exploits, found_behaviours, found_js_contexts) = self.parser.parseFile(xmlFile, saveJsContext) if os.path.isfile(xmlFile) else False
         self.objects[0].addBool("thug_active", parsed)
         self.objects[0].addBool("thug_detected", found_exploits)
-        
+
         if not parsed:
             return False
-        
+
         self.objects[0].addBytes("thug_analysis_file", self.dsAdapter.putFile(xmlFile, self.currentTask.job))
 
         bList = ow.toBehaviorList(found_behaviours)
@@ -213,7 +213,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         os.close(tmp[0])
         self.objects[0].addBytes("thug_behaviors", self.dsAdapter.putFile(tmp[1], self.currentTask.job))
         self.remove_tmp(tmp[1])
-        
+
         cList = ow.toJSContextList(found_js_contexts)
         tmp = tempfile.mkstemp()
         os.write(tmp[0], cList.SerializeToString())
@@ -227,7 +227,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         self.objects[0].addBytes("thug_analysis_zip", self.dsAdapter.putFile(zip_, self.currentTask.job))
         logging.debug("'%s' zip_ stored" % zip_)
         os.remove(zip_)
-        
+
     def remove_tmp(self, path):
         try:
             if os.path.isdir(path):
