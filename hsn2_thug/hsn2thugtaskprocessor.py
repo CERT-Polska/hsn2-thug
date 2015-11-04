@@ -195,6 +195,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         Execute args, limit execution time to 'timeout' seconds.
         Uses the subprocess module and subprocess.PIPE.
         """
+        logging.debug(args)
 
         bufsize = 0
 
