@@ -202,7 +202,7 @@ class ThugTaskProcessor(HSN2TaskProcessor):
             args,
             bufsize=bufsize,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             cwd=self.thugDir  # this will cause the logs to be written to '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
         )
 
