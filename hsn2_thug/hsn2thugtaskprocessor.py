@@ -37,16 +37,6 @@ from hsn2_thug.hsn2thuganalysisparser import ThugAnalysisParser
 ANALYSIS_DIR_REGEXP = re.compile(r"Thug analysis logs saved at\s([\.a-z0-9/]+)")
 
 
-def nonBlockRead(output):
-    fd = output.fileno()
-    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-    try:
-        return output.read()
-    except:
-        return ''
-
-
 class ThugTaskProcessor(HSN2TaskProcessor):
     '''
     Task processor for Thug.
@@ -197,11 +187,8 @@ class ThugTaskProcessor(HSN2TaskProcessor):
         """
         logging.debug(args)
 
-        bufsize = 0
-
         proc = subprocess.Popen(
             args,
-            bufsize=bufsize,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             cwd=self.thugDir  # this will cause the logs to be written to '/opt/thug/logs' assuming that self.thugDir is '/opt/thug/src'
@@ -209,8 +196,8 @@ class ThugTaskProcessor(HSN2TaskProcessor):
 
         start = time.time()
 
-        stdout = ''
-        stderr = ''
+        stdout_chunks = []
+        stderr = ""
 
         timedout = False
         while proc.poll() is None:
@@ -221,9 +208,16 @@ class ThugTaskProcessor(HSN2TaskProcessor):
             if not self.keepRunning:
                 self.terminateProc(proc)
                 raise ShutdownException("Shutdown while waiting for thug to finish processing")
-            time.sleep(0.1)
-            stdout += nonBlockRead(proc.stdout)
-            stderr += nonBlockRead(proc.stderr)
+            stdout_chunk = proc.stdout.read(100)
+            if stdout_chunk:
+                stdout_chunks.append(stdout_chunk)
+            else:
+                time.sleep(0.1)
+
+        stdout_chunk = proc.stdout.read()
+        if stdout_chunk:
+            stdout_chunks.append(stdout_chunk)
+        stdout = "".join(stdout_chunks)
 
         return (stdout, stderr), timedout, proc.returncode
 
