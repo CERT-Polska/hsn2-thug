@@ -208,13 +208,19 @@ class ThugTaskProcessor(HSN2TaskProcessor):
             if not self.keepRunning:
                 self.terminateProc(proc)
                 raise ShutdownException("Shutdown while waiting for thug to finish processing")
-            stdout_chunk = proc.stdout.read(100)
+            try:
+                stdout_chunk = proc.stdout.read(100)
+            except ValueError:
+                stdout_chunk = ""
             if stdout_chunk:
                 stdout_chunks.append(stdout_chunk)
             else:
                 time.sleep(0.1)
 
-        stdout_chunk = proc.stdout.read()
+        try:
+            stdout_chunk = proc.stdout.read()
+        except ValueError:
+            stdout_chunk = ""
         if stdout_chunk:
             stdout_chunks.append(stdout_chunk)
         stdout = "".join(stdout_chunks)
