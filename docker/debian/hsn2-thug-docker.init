@@ -1,0 +1,87 @@
+#!/bin/sh -e
+
+### BEGIN INIT INFO
+# Provides:               hsn2-thug-docker
+# Required-Start:         $remote_fs docker
+# Required-Stop:          $remote_fs docker
+# Default-Start:          2 3 4 5
+# Default-Stop:           0 1 6
+# Short-Description:      Start/Stop the HSN2 Thug Docker Service
+# Description:            Start/Stop the HSN2 Thug Docker Service
+### END INIT INFO
+
+. /lib/lsb/init-functions
+
+NAME="HSN2 Thug Docker Service"
+HSN2_COMPONENT="thug"
+PIDFILE="/var/run/hsn2-thug-docker.pid"
+
+HSN2_COMPONENT_HOME="/usr/lib/python2.7/dist-packages/hsn2_thug"
+
+CONFFILE=/etc/hsn2/common.conf
+if [ -f $CONFFILE ]; then
+	. $CONFFILE
+else
+	echo "Missing configuration file: $CONFFILE"
+	exit 1
+fi
+
+HSN2_COMPONENT_PARAMS="--connector=$BROKER_ADDRESS \
+--datastore=http://$DATASTORE_ADDRESS \
+--maxThreads=$MAX_THREADS \
+--log-level=$LOG_LEVEL \
+--service-name=$HSN2_COMPONENT \
+--thug=/opt/thug/src/thug.py"
+
+
+case "$1" in
+	start)
+		IMAGECOUNT=`docker images | grep hsn2/thug | wc -l`
+		log_daemon_msg "Starting" "$NAME"
+		
+		if [ "$IMAGECOUNT" = "0" ]; then
+			hsn2-thug-docker-build
+		fi
+		
+		docker ps -a | grep Exited | grep hsn2/thug | cut -d" " -f 1 | xargs --no-run-if-empty docker rm > /dev/null
+		docker run -d -v /var/log/hsn2:/var/log/hsn2/ --dns=8.8.8.8 -h dockerThug --name thug -w $HSN2_COMPONENT_HOME --entrypoint /start.sh hsn2/thug ${HSN2_COMPONENT_HOME}/hsn2thugservice.py $HSN2_COMPONENT_PARAMS > /dev/null
+		PID=`docker inspect --format '{{.State.Pid}}' thug`
+		TEST=`ps ax | grep $PID | sed -e 's/^ *//' | cut -d' ' -f1`
+		if [ -n "$TEST" ]; then
+			echo $PID > $PIDFILE
+			log_end_msg 0
+		else
+			log_end_msg 1
+			echo "" > $PIDFILE
+		fi
+		;;
+
+	stop)
+		log_daemon_msg "Stopping" "$NAME"
+		if [ `docker ps | grep thug -c` -eq 1 ]; then
+			docker exec thug pkill -15 -f hsn2thugservice > /dev/null
+		fi
+		# check again to force stop
+		if [ `docker ps | grep thug -c` -eq 1 ]; then
+			docker stop thug > /dev/null
+		fi
+		if [ `docker ps -a | grep thug -c` -gt 0 ]; then
+			docker rm thug > /dev/null
+		fi
+		log_end_msg 0
+		echo "" > $PIDFILE
+		;;
+		
+	restart|force-reload)
+		if $0 status; then
+			$0 stop && $0 start
+		else
+			$0 start
+		fi
+		;;
+
+	status)
+		status_of_proc -p $PIDFILE "$JAVA" "$NAME" && exit 0 || exit $?
+		;;
+esac
+exit 0

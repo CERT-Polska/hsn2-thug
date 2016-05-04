@@ -1,0 +1,33 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:               hsn2-thug
+# Required-Start:         $remote_fs
+# Required-Stop:          $remote_fs
+# Default-Start:          2 3 4 5
+# Default-Stop:           0 1 6
+# Short-Description:      Start/Stop the HSN2 Thug Service
+# Description:            Start/Stop the HSN2 Thug Service
+### END INIT INFO
+
+. /lib/hsn2/init-functions-python
+
+NAME="HSN2 Thug Service"
+HSN2_COMPONENT="thug"
+HSN2_COMPONENT_HOME="/usr/lib/python2.7/dist-packages/hsn2_thug"
+
+HSN2_MAIN_MODULE=hsn2thugservice.py
+CONFFILE=/etc/hsn2/common.conf
+
+prepare_start() {
+	HSN2_COMPONENT_PARAMS="--connector=$BROKER_ADDRESS \
+		--datastore=http://$DATASTORE_ADDRESS \
+		--maxThreads=$MAX_THREADS \
+		--log-level=$LOG_LEVEL \
+		--service-name=$HSN2_COMPONENT \
+		--thug=/opt/thug/src/thug.py"
+}
+
+choose_python_service_action $@
+
+exit $?

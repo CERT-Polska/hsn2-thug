@@ -1,0 +1,8 @@
+/var/log/hsn2/thug.log {
+	size=50M
+	rotate 5
+	compress
+	copytruncate
+	notifempty
+	missingok
+}

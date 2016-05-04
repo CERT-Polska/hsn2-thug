@@ -1,0 +1,12 @@
+#!/bin/sh -e
+
+case "$1" in
+    purge)
+    	hsn2-thug-docker-clean
+    ;;
+
+    *)
+    ;;
+esac
+
+#DEBHELPER#
